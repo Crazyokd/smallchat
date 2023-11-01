@@ -12,3 +12,10 @@ Well, with this tricks we can implement a chat that even has the ability to
 let the user set their nick in just 200 lines of code (removing spaces
 and comments, of course). Since I wrote this little program as an example for
 my friends, I decided to also push it here on Github.
+
+## Usage
+
+```shell
+make && ./smallchat
+nc 127.0.0.1 7711 // another terminal
+```

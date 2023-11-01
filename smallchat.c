@@ -54,21 +54,19 @@
  * info about it: the socket descriptor and the nick name, if set, otherwise
  * the first byte of the nickname is set to 0 if not set.
  * The client can set its nickname with /nick <nickname> command. */
-struct client {
+typedef struct client {
     int fd;     // Client socket.
     char *nick; // Nickname of the client.
-};
+} client;
 
 /* This global structure encasulates the global state of the chat. */
 struct chatState {
     int serversock;     // Listening server socket.
     int numclients;     // Number of connected clients right now.
     int maxclient;      // The greatest 'clients' slot populated.
-    struct client *clients[MAX_CLIENTS]; // Clients are set in the corresponding
+    client *clients[MAX_CLIENTS]; // Clients are set in the corresponding
                                          // slot of their socket descriptor.
-};
-
-struct chatState *Chat; // Initialized at startup.
+} *Chat; // Initialized at startup.
 
 /* ======================== Low level networking stuff ==========================
  * Here you will find basic socket stuff that should be part of
@@ -90,6 +88,7 @@ int createTCPServer(int port) {
     sa.sin_port = htons(port);
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
 
+    // 指定等待连接队列的最大长度为511
     if (bind(s,(struct sockaddr*)&sa,sizeof(sa)) == -1 ||
         listen(s, 511) == -1)
     {
@@ -142,6 +141,7 @@ int acceptClient(int server_socket) {
 void *chatMalloc(size_t size) {
     void *ptr = malloc(size);
     if (ptr == NULL) {
+        // 为错误消息添加提示前缀
         perror("Out of memory");
         exit(1);
     }
@@ -167,14 +167,17 @@ void *chatRealloc(void *ptr, size_t size) {
 
 /* Create a new client bound to 'fd'. This is called when a new client
  * connects. As a side effect updates the global Chat state. */
-struct client *createClient(int fd) {
+client *createClient(int fd) {
     char nick[32]; // Used to create an initial nick for the user.
+    // 格式化字符串并写入nick
     int nicklen = snprintf(nick,sizeof(nick),"user:%d",fd);
-    struct client *c = chatMalloc(sizeof(*c));
+    client *c = chatMalloc(sizeof(*c));
     socketSetNonBlockNoDelay(fd); // Pretend this will not fail.
     c->fd = fd;
     c->nick = chatMalloc(nicklen+1);
+    // 将nick写入c->nick
     memcpy(c->nick,nick,nicklen);
+    // 表达式为假，断言失败
     assert(Chat->clients[c->fd] == NULL); // This should be available.
     Chat->clients[c->fd] = c;
     /* We need to update the max client set if needed. */
@@ -185,7 +188,7 @@ struct client *createClient(int fd) {
 
 /* Free a client, associated resources, and unbind it from the global
  * state in Chat. */
-void freeClient(struct client *c) {
+void freeClient(client *c) {
     free(c->nick);
     close(c->fd);
     Chat->clients[c->fd] = NULL;
@@ -277,7 +280,7 @@ int main(void) {
              * there are new clients connections pending to accept. */
             if (FD_ISSET(Chat->serversock, &readfds)) {
                 int fd = acceptClient(Chat->serversock);
-                struct client *c = createClient(fd);
+                client *c = createClient(fd);
                 /* Send a welcome message. */
                 char *welcome_msg =
                     "Welcome to Simple Chat! "
@@ -309,7 +312,7 @@ int main(void) {
                         /* The client sent us a message. We need to
                          * relay this message to all the other clients
                          * in the chat. */
-                        struct client *c = Chat->clients[j];
+                        client *c = Chat->clients[j];
                         readbuf[nread] = 0;
 
                         /* If the user message starts with "/", we
@@ -318,6 +321,7 @@ int main(void) {
                         if (readbuf[0] == '/') {
                             /* Remove any trailing newline. */
                             char *p;
+                            // strchr: 如果在readbuf中找到\r或\n，则函数返回指向该字符的指针，否则返回 NULL。
                             p = strchr(readbuf,'\r'); if (p) *p = 0;
                             p = strchr(readbuf,'\n'); if (p) *p = 0;
                             /* Check for an argument of the command, after
@@ -328,6 +332,7 @@ int main(void) {
                                 arg++; /* Argument is 1 byte after the space. */
                             }
 
+                            // strcmp: 相等时，返回0
                             if (!strcmp(readbuf,"/nick") && arg) {
                                 free(c->nick);
                                 int nicklen = strlen(arg);
