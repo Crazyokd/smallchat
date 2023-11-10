@@ -11,7 +11,7 @@
  *   * Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer in the
  *     documentation and/or other materials provided with the distribution.
- *   * Neither the name of Redis nor the names of its contributors may be used
+ *   * Neither the project name of nor the names of its contributors may be used
  *     to endorse or promote products derived from this software without
  *     specific prior written permission.
  *
@@ -59,7 +59,7 @@ typedef struct client {
     char *nick; // Nickname of the client.
 } client;
 
-/* This global structure encasulates the global state of the chat. */
+/* This global structure encapsulates the global state of the chat. */
 struct chatState {
     int serversock;     // Listening server socket.
     int numclients;     // Number of connected clients right now.
@@ -75,7 +75,7 @@ struct chatState {
  * Undefined Behavior.
  * =========================================================================== */
 
-/* Create a TCP socket lisetning to 'port' ready to accept connections. */
+/* Create a TCP socket listening to 'port' ready to accept connections. */
 int createTCPServer(int port) {
     int s, yes = 1;
     struct sockaddr_in sa;
@@ -350,6 +350,8 @@ int main(void) {
                             char msg[256];
                             int msglen = snprintf(msg, sizeof(msg),
                                 "%s> %s", c->nick, readbuf);
+                            if (msglen >= (int)sizeof(msg))
+                                msglen = sizeof(msg)-1;
                             printf("%s",msg);
 
                             /* Send it to all the other clients. */
