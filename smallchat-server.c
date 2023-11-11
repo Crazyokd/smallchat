@@ -104,8 +104,10 @@ void freeClient(client *c) {
          * the new highest slot used. */
         int j;
         for (j = Chat->maxclient-1; j >= 0; j--) {
-            if (Chat->clients[j] != NULL) Chat->maxclient = j;
-            break;
+            if (Chat->clients[j] != NULL) {
+                Chat->maxclient = j;
+                break;
+            }
         }
         if (j == -1) Chat->maxclient = -1; // We no longer have clients.
     }
